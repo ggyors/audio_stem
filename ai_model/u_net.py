@@ -28,7 +28,7 @@ class DownConvBlock(nn.Module):
             num_features = out_channels
         )
 
-        self.activation = nn.LeakyReLU(float = 0.2)
+        self.activation = nn.LeakyReLU(0.2)
     
     def forward(self,x):
         x = self.conv(x)
@@ -157,6 +157,8 @@ class UnetAudioStemmer(nn.Module):
 
         # On multiplie le spectrogramme d'entrée original par le masque généré
         # pour isoler les fréquences de la voix.
+        print(x.shape)
+        print(mask.shape)
         separated_audio_spectrogram = x * mask
 
         return separated_audio_spectrogram
