@@ -116,7 +116,7 @@ class UnetAudioStemmer(nn.Module):
                 padding=2
             ),
             nn.BatchNorm2d(128),
-            nn.ReLU()
+            nn.ReLU(),
         )
 
         # --- LE DÉCODEUR (La remontée) ---
@@ -124,6 +124,16 @@ class UnetAudioStemmer(nn.Module):
         self.up1 = UpConvBlock(in_channels=128, out_channels=64)
         self.up2 = UpConvBlock(in_channels=64, out_channels=32)
         self.up3 = UpConvBlock(in_channels=32, out_channels=16)
+
+        # Pour juste repasser à la bonne size comme dans l'entrée
+        self.up4 = nn.ConvTranspose2d(
+            in_channels=16, 
+            out_channels=16, # On garde 16 canaux, on veut juste doubler la taille
+            kernel_size=5, 
+            stride=2, 
+            padding=2, 
+            output_padding=1
+        )
 
         # --- COUCHE FINALE ---
         # On ramène nos 16 canaux à 1 seul canal (notre masque en noir et blanc)
@@ -139,26 +149,26 @@ class UnetAudioStemmer(nn.Module):
 
     def forward(self, x):
         # 1. ENCODAGE (Descente)
-        d1 = self.down1(x)
-        d2 = self.down2(d1)
-        d3 = self.down3(d2)
+        d1 = self.down1(x) 
+        d2 = self.down2(d1) 
+        d3 = self.down3(d2) 
 
         # 2. BOTTLENECK
-        bottom = self.bottleneck(d3)
+        bottom = self.bottleneck(d3) # 64
 
         #3. DECODAGE (Remontée)
-        u1 = self.up1(bottom, d3)
+        u1 = self.up1(bottom, d3) 
         u2 = self.up2(u1, d2)
         u3 = self.up3(u2,d1)
 
-        # 4. MASQUE FINAL
-        out = self.final_conv(u3)
-        mask = self.sigmoid(out)
+        #4. Upsample pour avoir la même shape que l'input
+        u4 = self.up4(u3)
 
+        # 4. MASQUE FINAL
+        out = self.final_conv(u4)
+        mask = self.sigmoid(out)
         # On multiplie le spectrogramme d'entrée original par le masque généré
         # pour isoler les fréquences de la voix.
-        print(x.shape)
-        print(mask.shape)
         separated_audio_spectrogram = x * mask
 
         return separated_audio_spectrogram
