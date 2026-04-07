@@ -21,9 +21,9 @@ print(f"🖥️ Matériel utilisé : {device}")
 # On initialise les données 
 musdb_root = "../data/dataset/"
 musdb_train_data = MUSDBDataset(data_root=musdb_root,subset="train",chunk_duration=3.0)
-musdb_train_loader = DataLoader(musdb_train_data,batch_size=16,shuffle=True,drop_last=True)
+musdb_train_loader = DataLoader(musdb_train_data,batch_size=4,shuffle=True,drop_last=True)
 musdb_val_data = MUSDBDataset(data_root=musdb_root,subset="test",chunk_duration=3.0)
-musdb_val_loader = DataLoader(musdb_val_data,batch_size=16,shuffle=True,drop_last=True)
+musdb_val_loader = DataLoader(musdb_val_data,batch_size=4,shuffle=True,drop_last=True)
 
 # On instancie le modèle et on l'envoie sur la carte graphique
 model = UnetAudioStemmer().to(device)
@@ -35,7 +35,7 @@ criterion = nn.L1Loss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 # Variables pour suivre l'évolution et sauvegarder le meilleur modèle
-epochs = 50
+epochs = 2
 best_val_loss = float('inf')
 
 print("\n🔥 Début de l'entraînement...")
@@ -69,7 +69,7 @@ for epoch in range(epochs):
         # Mise à jour des gradients
         optimizer.step()
 
-        train_loss += loss.item()
+        epoch_train_loss += loss.item()
 
     # Calcul de la Loss moyenne sur toute l'époque
     avg_train_loss = epoch_train_loss / len(musdb_train_loader)
@@ -79,7 +79,7 @@ for epoch in range(epochs):
     # ==========================================
 
     model.eval() # Mode évaluation activé (gèle le BatchNorm pour qu'il soit stable)
-    val_loss = 0.0
+    epoch_val_loss = 0.0
 
     # On itère sur notre dataloader (qui nous donne des batchs de chunk_duration secondes)
     with torch.no_grad():
@@ -92,9 +92,9 @@ for epoch in range(epochs):
 
             # Calcul de la loss
             loss = criterion(y_predi_batch_db, y_batch_db)
-            val_loss += loss.item()
+            epoch_val_loss += loss.item()
 
-    avg_val_loss = val_loss / len(musdb_val_loader)
+    avg_val_loss = epoch_val_loss / len(musdb_val_loader)
 
     # ==========================================
     #             BILAN DE L'ÉPOQUE
