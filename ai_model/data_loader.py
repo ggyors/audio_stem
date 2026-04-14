@@ -67,12 +67,16 @@ class MUSDBDataset(Dataset):
         # 5. 🛡️ LA RUSTINE DU 1024 : On enlève la fréquence impaire
         X_spectro_db = X_spectro_db[:, :1024, :]
         y_spectro_db = y_spectro_db[:, :1024, :]
+        X_spectro_mag = X_spectro_mag[:, :1024, :]
+        y_spectro_mag = y_spectro_mag[:, :1024, :]
+
 
         # ⚠️ 6. LA NOUVELLE RUSTINE : Le multiple de 16 pour le Temps
         # On force la largeur à 256 au lieu de 259 en coupant ce qui dépasse
         X_spectro_db = X_spectro_db[..., :256]
         y_spectro_db = y_spectro_db[..., :256]
+        X_spectro_mag = X_spectro_mag[..., :256]
+        y_spectro_mag = y_spectro_mag[..., :256]
         
-        return X_spectro_db, y_spectro_db
-
+        return X_spectro_mag, y_spectro_mag
         

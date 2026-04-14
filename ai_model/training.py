@@ -21,9 +21,9 @@ print(f"🖥️ Matériel utilisé : {device}")
 # On initialise les données 
 musdb_root = "../data/dataset/"
 musdb_train_data = MUSDBDataset(data_root=musdb_root,subset="train",chunk_duration=3.0)
-musdb_train_loader = DataLoader(musdb_train_data,batch_size=4,shuffle=True,drop_last=True)
+musdb_train_loader = DataLoader(musdb_train_data,batch_size=16,shuffle=True,drop_last=True)
 musdb_val_data = MUSDBDataset(data_root=musdb_root,subset="test",chunk_duration=3.0)
-musdb_val_loader = DataLoader(musdb_val_data,batch_size=4,shuffle=True,drop_last=True)
+musdb_val_loader = DataLoader(musdb_val_data,batch_size=16,shuffle=True,drop_last=True)
 
 # On instancie le modèle et on l'envoie sur la carte graphique
 model = UnetAudioStemmer().to(device)
@@ -35,7 +35,7 @@ criterion = nn.L1Loss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 # Variables pour suivre l'évolution et sauvegarder le meilleur modèle
-epochs = 2
+epochs = 1000
 best_val_loss = float('inf')
 
 print("\n🔥 Début de l'entraînement...")
@@ -49,19 +49,18 @@ for epoch in range(epochs):
     epoch_train_loss = 0.0
 
     # On itère sur notre dataloader (qui nous donne des batchs de chunk_duration secondes)
-    for batch_idx, (X_batch_db, y_batch_db) in enumerate(musdb_train_loader):
-        X_batch_db = X_batch_db.to(device)
-        y_batch_db = y_batch_db.to(device)
+    for batch_idx, (X_batch_mag, y_batch_mag) in enumerate(musdb_train_loader):
+        X_batch_mag = X_batch_mag.to(device)
+        y_batch_mag = y_batch_mag.to(device)
 
         # Remise à zéro des gradients
-        optimizer.zero_grad()
+        optimizer.zero_grad() 
 
         # Acquisition des prédictions
-        y_predi_batch_db = model(X_batch_db)
+        y_predi_batch_mag = model(X_batch_mag)
 
         # Calcul de la loss
-        loss = criterion(y_predi_batch_db, y_batch_db)
-        epoch_train_loss += loss.item()
+        loss = criterion(y_predi_batch_mag, y_batch_mag)
 
         # Backpropagation 
         loss.backward()
@@ -69,6 +68,7 @@ for epoch in range(epochs):
         # Mise à jour des gradients
         optimizer.step()
 
+        # Ajout de la loss
         epoch_train_loss += loss.item()
 
     # Calcul de la Loss moyenne sur toute l'époque
@@ -83,15 +83,15 @@ for epoch in range(epochs):
 
     # On itère sur notre dataloader (qui nous donne des batchs de chunk_duration secondes)
     with torch.no_grad():
-        for batch_idx, (X_batch_db, X_batch_phase, y_batch_db, y_batch_phase) in enumerate(musdb_val_loader):
-            X_batch_db = X_batch_db.to(device)
-            y_batch_db = y_batch_db.to(device)
+        for batch_idx, (X_batch_mag, y_batch_mag) in enumerate(musdb_val_loader):
+            X_batch_mag = X_batch_mag.to(device)
+            y_batch_mag = y_batch_mag.to(device)
 
             # Acquisition des prédictions
-            y_predi_batch_db = model(X_batch_db)
+            y_predi_batch_db = model(X_batch_mag)
 
             # Calcul de la loss
-            loss = criterion(y_predi_batch_db, y_batch_db)
+            loss = criterion(y_predi_batch_db, y_batch_mag)
             epoch_val_loss += loss.item()
 
     avg_val_loss = epoch_val_loss / len(musdb_val_loader)

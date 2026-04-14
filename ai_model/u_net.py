@@ -100,35 +100,35 @@ class UnetAudioStemmer(nn.Module):
         # --- L'ENCODEUR (La descente) ---
         # Notre entrée est un spectrogramme mono (1 canal).
         # On augmente progressivement le nombre de filtres pour comprendre le son.
-        self.down1 = DownConvBlock(in_channels=1, out_channels=32)
-        self.down2 = DownConvBlock(in_channels=32, out_channels=64)
-        self.down3 = DownConvBlock(in_channels=64, out_channels=128)
+        self.down1 = DownConvBlock(in_channels=1, out_channels=64)
+        self.down2 = DownConvBlock(in_channels=64, out_channels=128)
+        self.down3 = DownConvBlock(in_channels=128, out_channels=256)
 
         # --- LE BOTTLENECK (Le fond du "U") ---
         # L'endroit où l'image est la plus compressée. Le modèle a ici une vision 
         # globale de la musique (le rythme, la présence vocale globale).
         self.bottleneck = nn.Sequential(
             nn.Conv2d(
-                in_channels=128,
-                out_channels=256,
+                in_channels=256,
+                out_channels=512,
                 kernel_size=5,
                 stride=2,
                 padding=2
             ),
-            nn.BatchNorm2d(256),
+            nn.BatchNorm2d(512),
             nn.ReLU(),
         )
 
         # --- LE DÉCODEUR (La remontée) ---
         # les blocs de déconvolution (ConvTranspose2d) !
-        self.up1 = UpConvBlock(in_channels=256, out_channels=128)
-        self.up2 = UpConvBlock(in_channels=128, out_channels=64)
-        self.up3 = UpConvBlock(in_channels=64, out_channels=32)
+        self.up1 = UpConvBlock(in_channels=512, out_channels=256)
+        self.up2 = UpConvBlock(in_channels=256, out_channels=128)
+        self.up3 = UpConvBlock(in_channels=128, out_channels=64)
 
         # Pour juste repasser à la bonne size comme dans l'entrée
         self.up4 = nn.ConvTranspose2d(
-            in_channels=32, 
-            out_channels=32, # On garde 16 canaux, on veut juste doubler la taille
+            in_channels=64, 
+            out_channels=64, # On garde 16 canaux, on veut juste doubler la taille
             kernel_size=5, 
             stride=2, 
             padding=2, 
@@ -139,7 +139,7 @@ class UnetAudioStemmer(nn.Module):
         # On ramène nos 16 canaux à 1 seul canal (notre masque en noir et blanc)
         # On utilise kernel_size=1, ce qui revient à scanner chaque pixel individuellement 
         # sans regarder ses voisins, juste pour fusionner les canaux finaux.
-        self.final_conv = nn.Conv2d(in_channels=32,
+        self.final_conv = nn.Conv2d(in_channels=64,
                                     out_channels=1,
                                     kernel_size=1,
                                     )
