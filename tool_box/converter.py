@@ -22,8 +22,8 @@ def audio_to_spectrogram_db(track, n_fft, hop_length):
     """
 
     #Reducing data sample size by two 
-    if track.shape[0] > 1: 
-        track = torch.mean(track,dim=0,keepdim=True)
+    #if track.shape[0] > 1: 
+    #    track = torch.mean(track,dim=0,keepdim=True)
 
     # creating the stft image 
     # return_complex=True est la norme sur les versions récentes de PyTorch
